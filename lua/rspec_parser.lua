@@ -4,8 +4,6 @@ local StartNotification = {}
 StartNotification.__index = StartNotification
 
 function StartNotification:new(args)
-  local self = setmetatable({}, StartNotification)
-
   self.type = "start"
   self.spec_count = args.example_count
 
@@ -16,8 +14,6 @@ local ExampleNotification = {}
 ExampleNotification.__index = ExampleNotification
 
 function ExampleNotification:new(args)
-  local self = setmetatable({}, ExampleNotification)
-
   self.type = args.type
   self.small_filepath = args.small_filepath
   self.line_number = args.line_number
@@ -38,7 +34,6 @@ function ExampleNotification:to_s()
 end
 
 LastTail = ""
-
 function RSpecParser.parse(text)
   local lines = {}
   local line = ""

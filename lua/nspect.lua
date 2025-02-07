@@ -6,6 +6,7 @@ local M = {}
 
 M.setup = function()
   M.plugin_root = debug.getinfo(1, "S").source:sub(2):match("(.*)/lua(.*)$")
+  M.spec_runs = {}
   M.win_title = "NSpect 🧪"
   M.win_title_state = "Idle"
   M.previous_command = nil
@@ -27,32 +28,48 @@ M.reload_plugin = function()
   print("Reloading NSpect")
 end
 
-M.close_win = function()
-  vim.api.nvim_win_close(0, false)
-end
-
-M.create_run_buf = function()
-  local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":lua require('nspect').close_win()<CR>", { silent=true })
-
-  local win = vim.api.nvim_open_win(bufnr, true, {
-    relative = "editor",
-    row = 0,
-    col = math.floor(vim.o.columns / 2),
-    width = math.floor(vim.o.columns / 2),
-    height = vim.o.lines - 3,
-    style = "minimal",
-    border = "rounded",
-  })
-
-  return bufnr, win
-end
-
 M.reset_state = function()
   M.notifications = {}
   M.win_title_state = "Executing"
   M.run_spec_count = nil
   M.error_data = ""
+end
+
+M.run_file = function()
+  M.reset_state()
+
+  local filepath = vim.api.nvim_buf_get_name(0)
+  if not filepath:match(".*_spec%.rb") then
+    return
+  end
+  local cmd, cmd_args = M.build_command("file", filepath, nil)
+
+  local run = {
+    cmd = cmd,
+    cmd_args = cmd_args,
+  }
+  table.insert(M.spec_runs, 1, run)
+
+  M.execute_run(1)
+end
+
+M.run_line = function()
+  M.reset_state()
+
+  local filepath = vim.api.nvim_buf_get_name(0)
+  if not filepath:match(".*_spec%.rb") then
+    return
+  end
+  local line_number = vim.api.nvim_win_get_cursor(0)[1]
+  local cmd, cmd_args = M.build_command("line", filepath, line_number)
+
+  local run = {
+    cmd = cmd,
+    cmd_args = cmd_args,
+  }
+  table.insert(M.spec_runs, 1, run)
+
+  M.execute_run(1)
 end
 
 M.build_command = function(type, filepath, line_number)
@@ -83,52 +100,18 @@ M.build_command = function(type, filepath, line_number)
   return cmd, cmd_args
 end
 
-M.run_file = function()
-  M.reset_state()
-
-  local filepath = vim.api.nvim_buf_get_name(0)
-  if not filepath:match(".*_spec%.rb") then
-    return
-  end
-  local cmd, cmd_args = M.build_command("file", filepath, nil)
-
-  M.previous_command = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-  }
-
-  M.execute_run()
-end
-
-M.run_line = function()
-  M.reset_state()
-
-  local filepath = vim.api.nvim_buf_get_name(0)
-  if not filepath:match(".*_spec%.rb") then
-    return
-  end
-  local line_number = vim.api.nvim_win_get_cursor(0)[1]
-  local cmd, cmd_args = M.build_command("line", filepath, line_number)
-
-  M.previous_command = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-  }
-
-  M.execute_run()
-end
-
 M.run_previous = function()
-  if not M.previous_command then return end
+  if #M.spec_runs < 1 then return end
 
   M.reset_state()
-  M.execute_run()
+  M.execute_run(1)
 end
 
-M.execute_run = function()
+M.execute_run = function(run_index)
+  local run = M.spec_runs[run_index]
   local bufnr, win = M.create_run_buf()
-  local cmd = M.previous_command.cmd
-  local cmd_args = M.previous_command.cmd_args
+  local cmd = run.cmd
+  local cmd_args = run.cmd_args
 
   local stdout = vim.uv.new_pipe()
   local stderr = vim.uv.new_pipe()
@@ -216,8 +199,8 @@ M.redraw_buff = function(bufnr, win)
       end
     end
 
-    if M.previous_command then
-      vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Ran using: " .. M.previous_command.cmd .. " " .. table.concat(M.previous_command.cmd_args, " ") })
+    if #M.spec_runs > 0 then
+      vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Ran using: " .. M.spec_runs[1].cmd .. " " .. table.concat(M.spec_runs[1].cmd_args, " ") })
     end
   end
 end
@@ -225,6 +208,27 @@ end
 M.open_prev_run = function ()
   local bufnr, win = M.create_run_buf()
   M.redraw_buff(bufnr, win)
+end
+
+M.close_win = function()
+  vim.api.nvim_win_close(0, false)
+end
+
+M.create_run_buf = function()
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":lua require('nspect').close_win()<CR>", { silent=true })
+
+  local win = vim.api.nvim_open_win(bufnr, true, {
+    relative = "editor",
+    row = 0,
+    col = math.floor(vim.o.columns / 2),
+    width = math.floor(vim.o.columns / 2),
+    height = vim.o.lines - 3,
+    style = "minimal",
+    border = "rounded",
+  })
+
+  return bufnr, win
 end
 
 return M
