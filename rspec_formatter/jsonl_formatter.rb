@@ -12,7 +12,9 @@ module NSpect
     end
 
     def start(notification)
+      @output << "helllooo"
       @output << {
+        sender: "nspect",
         type: "start",
         example_count: notification["count"],
       }.to_json
@@ -20,6 +22,7 @@ module NSpect
 
     def example_passed(notification)
       @output << {
+        sender: "nspect",
         type: "example_passed",
         absolute_filepath: notification.example.metadata[:absolute_file_path],
         small_filepath: notification.example.file_path,
@@ -29,6 +32,7 @@ module NSpect
 
     def example_failed(notification)
       @output << {
+        sender: "nspect",
         type: "example_failed",
         absolute_filepath: notification.example.metadata[:absolute_file_path],
         small_filepath: notification.example.file_path,
@@ -38,6 +42,7 @@ module NSpect
 
     def example_pending(notification)
       @output << {
+        sender: "nspect",
         type: "example_pending",
         absolute_filepath: notification.example.metadata[:absolute_file_path],
         small_filepath: notification.example.file_path,

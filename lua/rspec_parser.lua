@@ -12,10 +12,6 @@ function StartNotification:new(args)
   return self
 end
 
-function StartNotification:to_s()
-  return "Ran "..self.spec_count.." specs"
-end
-
 local ExampleNotification = {}
 ExampleNotification.__index = ExampleNotification
 
@@ -41,28 +37,40 @@ function ExampleNotification:to_s()
   return self.small_filepath .. ":" .. self.line_number .. " - " .. state
 end
 
+LastTail = ""
+
 function RSpecParser.parse(text)
   local lines = {}
-  local open_count = 0
   local line = ""
+  local is_open = false
+  local open_count = 0
+  local indicator = '"sender":"nspect"'
 
-  print("doing some parsing")
+  text = LastTail..text
   for i = 1, #text do
     local char = text:sub(i, i)
 
-    line = line .. char
+    if is_open then
+      line = line .. char
+    end
 
-    if char == "{" then
+    if char == "{" and string.sub(text, i+1, i+#indicator) == indicator and not is_open then
+      is_open = true
+      line = "{"
+      open_count = 1
+    elseif char == "{" and is_open then
       open_count = open_count + 1
-    elseif char == "}" then
+    elseif char == "}" and is_open and open_count == 1 then
+      table.insert(lines, line)
+      open_count = 0
+      is_open = false
+      line = ""
+    elseif char == "}" and is_open then
       open_count = open_count - 1
-      print("Adding line: " .. line)
-      if open_count == 0 then
-        table.insert(lines, #lines + 1, line)
-        line = ""
-      end
     end
   end
+
+  LastTail = line
 
   local results = {}
 
