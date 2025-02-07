@@ -4,6 +4,8 @@ local StartNotification = {}
 StartNotification.__index = StartNotification
 
 function StartNotification:new(args)
+  local self = setmetatable({}, StartNotification)
+
   self.type = "start"
   self.spec_count = args.example_count
 
@@ -14,8 +16,11 @@ local ExampleNotification = {}
 ExampleNotification.__index = ExampleNotification
 
 function ExampleNotification:new(args)
+  local self = setmetatable({}, ExampleNotification)
+
   self.type = args.type
   self.small_filepath = args.small_filepath
+  self.full_filepath = args.absolute_filepath
   self.line_number = args.line_number
 
   return self
@@ -30,7 +35,7 @@ function ExampleNotification:to_s()
   else
     state = "Fail"
   end
-  return self.small_filepath .. ":" .. self.line_number .. " - " .. state
+  return self.id .. " - " .. self.small_filepath .. ":" .. self.line_number .. " - " .. state
 end
 
 LastTail = ""
