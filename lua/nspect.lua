@@ -42,7 +42,6 @@ end
 M.reset_state = function()
   M.example_noti_count = 0
   M.win_title_state = "Executing"
-  M.run_spec_count = nil
   M.error_data = ""
 end
 
@@ -163,6 +162,7 @@ end
 
 M.execute_run = function(run_index)
   local run = M.spec_runs[run_index]
+  run.spec_count = 0
   local bufnr, win = M.create_run_buf()
   local cmd = run.cmd
   local cmd_args = run.cmd_args
