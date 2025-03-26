@@ -97,12 +97,19 @@ M.build_command = function(type, filepath, line_number)
   end
 
   local cmd_args = {
-    command_file_part,
     "--require",
     M.plugin_root .. "/rspec_formatter/jsonl_formatter.rb",
     "--format",
     "NSpect::JSONLFormatter",
   }
+
+  if type == "multiple" then
+    for _, path in ipairs(filepath) do
+      table.insert(cmd_args, 1, path)
+    end
+  else
+    table.insert(cmd_args, 1, command_file_part)
+  end
 
   if use_bundle then
     cmd = "bundle"
@@ -188,7 +195,6 @@ M.execute_run = function(run_index)
           M.win_title_state = "Running " .. run.spec_count .. " specs"
         else
           table.insert(run.notifications, notification)
-          notification.id = #run.notifications
         end
       end
 
@@ -281,11 +287,38 @@ M.copy_command_to_clipboard = function()
   vim.notify("Spec command copied to clipboard")
 end
 
+M.run_failed_specs = function()
+  local file_paths = {}
+
+  for _, notification in ipairs(M.spec_runs[1].notifications) do
+    if notification.type == "example_failed" then
+      table.insert(file_paths, notification.full_filepath .. ":" .. notification.line_number)
+    end
+  end
+
+  if #file_paths <= 0 then
+    vim.notify("No failures to run")
+    return
+  end
+
+  local cmd, cmd_args = M.build_command("multiple", file_paths, nil)
+  local run = {
+    cmd = cmd,
+    cmd_args = cmd_args,
+    notifications = {},
+    start_notication = nil,
+  }
+  table.insert(M.spec_runs, 1, run)
+
+  M.execute_run(1)
+end
+
 M.create_run_buf = function()
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":lua require('nspect').close_win()<CR>", { silent=true })
   vim.api.nvim_buf_set_keymap(bufnr, "n", "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
   vim.api.nvim_buf_set_keymap(bufnr, "n", "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(bufnr, "n", "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
 
   local win = vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
