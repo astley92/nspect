@@ -264,7 +264,9 @@ end
 
 M.close_win = function()
   for _, win in ipairs(M.wins) do
-    vim.api.nvim_win_close(win, false)
+    if(vim.api.nvim_win_is_valid(win)) then
+      vim.api.nvim_win_close(win, false)
+    end
   end
   M.wins = {}
 end
