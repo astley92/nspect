@@ -10,7 +10,6 @@ M.setup = function()
   M.spec_runs = {}
   M.win_title = "NSpect 🧪"
   M.win_title_state = "Idle"
-  M.previous_command = nil
   M.wins = {}
 
   vim.keymap.set("n", "<leader>R", M.reload_plugin)
@@ -271,10 +270,27 @@ M.close_win = function()
   M.wins = {}
 end
 
+M.copy_command_to_clipboard = function()
+  local prev_run = M.spec_runs[1]
+  local cmd_str = prev_run.cmd
+
+  for _, cmd in ipairs(prev_run.cmd_args) do
+    if(cmd == "--require") then
+      break
+    end
+
+    cmd_str = cmd_str .. " " .. cmd
+  end
+
+  vim.fn.setreg("+", cmd_str)
+  vim.notify("Spec command copied to clipboard")
+end
+
 M.create_run_buf = function()
   local bufnr = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":lua require('nspect').close_win()<CR>", { silent=true })
   vim.api.nvim_buf_set_keymap(bufnr, "n", "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(bufnr, "n", "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
 
   local win = vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
