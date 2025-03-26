@@ -12,7 +12,6 @@ module NSpect
     end
 
     def start(notification)
-      @output << "helllooo"
       @output << {
         sender: "nspect",
         type: "start",
@@ -37,6 +36,7 @@ module NSpect
         absolute_filepath: notification.example.metadata[:absolute_file_path],
         small_filepath: notification.example.file_path,
         line_number: notification.example.metadata[:line_number],
+        message_lines: notification.message_lines,
       }.to_json
     end
 
