@@ -64,7 +64,6 @@ M.run_file = function()
   table.insert(M.spec_runs, 1, run)
 
   M.execute_run(1)
-  vim.print(M)
 end
 
 M.run_line = function()
@@ -136,13 +135,13 @@ M.run_highlighted_spec = function()
   M.reset_state()
 
   local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-  local notification = M.spec_runs[1].notifications[cursor_line]
+  local spec = M.spec_runs[1].notifications[cursor_line]
 
-  if(notification == nil) then
+  if(spec == nil) then
     return
   end
 
-  local cmd, cmd_args = M.build_command("line", notification.full_filepath, notification.line_number)
+  local cmd, cmd_args = M.build_command("line", spec.full_filepath, spec.line_number)
 
   local run = {
     cmd = cmd,

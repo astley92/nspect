@@ -20,10 +20,12 @@ TODO
 
 ### Under Dev
 
+- Re-run all failures
+
 ### Upcoming
 
-- Re-run all failures
 - Highlight multiple specs to rerun
 - View previous spec runs
+- Show the output for each test in a new buffer next to the highlighted line
 
 ### Done
