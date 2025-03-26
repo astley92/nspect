@@ -35,7 +35,7 @@ function ExampleNotification:to_s()
   else
     state = "Fail"
   end
-  return self.id .. " - " .. self.small_filepath .. ":" .. self.line_number .. " - " .. state
+  return self.small_filepath .. ":" .. self.line_number .. " - " .. state
 end
 
 LastTail = ""

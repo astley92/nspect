@@ -40,7 +40,6 @@ M.reload_plugin = function()
 end
 
 M.reset_state = function()
-  M.notifications = {}
   M.example_noti_count = 0
   M.win_title_state = "Executing"
   M.run_spec_count = nil
@@ -60,10 +59,12 @@ M.run_file = function()
     cmd = cmd,
     cmd_args = cmd_args,
     notifications = {},
+    start_notication = nil,
   }
   table.insert(M.spec_runs, 1, run)
 
   M.execute_run(1)
+  vim.print(M)
 end
 
 M.run_line = function()
@@ -80,6 +81,7 @@ M.run_line = function()
     cmd = cmd,
     cmd_args = cmd_args,
     notifications = {},
+    start_notication = nil,
   }
   table.insert(M.spec_runs, 1, run)
 
@@ -123,6 +125,7 @@ M.run_previous = function()
     cmd = prev_run.cmd,
     cmd_args = prev_run.cmd_args,
     notifications = {},
+    start_notication = nil,
   }
   table.insert(M.spec_runs, 1, run)
 
@@ -133,29 +136,23 @@ M.run_highlighted_spec = function()
   M.reset_state()
 
   local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-  local current_line = vim.api.nvim_buf_get_lines(0, cursor_line-1, cursor_line, false)[1]
+  local notification = M.spec_runs[1].notifications[cursor_line]
 
-  local parts = {}
-  for part in current_line:gmatch("([^%-]+)") do
-    table.insert(parts, part:match("^%s*(.-)%s*$")) -- Trim spaces
+  if(notification == nil) then
+    return
   end
-  local selected_id = tonumber(parts[1])
 
-  for _, notification in ipairs(M.spec_runs[1].notifications) do
-    if notification.id == selected_id then
-      local cmd, cmd_args = M.build_command("line", notification.full_filepath, notification.line_number)
+  local cmd, cmd_args = M.build_command("line", notification.full_filepath, notification.line_number)
 
-      local run = {
-        cmd = cmd,
-        cmd_args = cmd_args,
-        notifications = {},
-      }
-      table.insert(M.spec_runs, 1, run)
+  local run = {
+    cmd = cmd,
+    cmd_args = cmd_args,
+    notifications = {},
+    start_notication = nil,
+  }
+  table.insert(M.spec_runs, 1, run)
 
-      M.execute_run(1)
-      return
-    end
-  end
+  M.execute_run(1)
 end
 
 M.execute_run = function(run_index)
@@ -188,13 +185,14 @@ M.execute_run = function(run_index)
       for _, notification in ipairs(notifications) do
         if notification.type == "start" then
           run.spec_count = notification.spec_count
+          run.start_notification = notification
           M.win_title_state = "Running " .. run.spec_count .. " specs"
         else
-          notification.id = M.example_noti_count
-          M.example_noti_count = M.example_noti_count + 1
+          table.insert(run.notifications, notification)
+          notification.id = #run.notifications
         end
-        table.insert(run.notifications, notification)
       end
+
       M.redraw_buff(bufnr, win, run)
     end)
   end)
@@ -229,15 +227,13 @@ M.redraw_buff = function(bufnr, win, run)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
     for line_index, notification in ipairs(run.notifications) do
-      line_index = line_index - 2
-      if notification.type ~= "start" then
-        vim.api.nvim_buf_set_lines(bufnr, line_index, line_index, false, {notification:to_s()})
-        vim.api.nvim_win_set_cursor(win, {vim.api.nvim_buf_line_count(bufnr), 0})
-        vim.api.nvim_buf_set_extmark(bufnr, M.highlight_ns_id, line_index, 0, {
-          hl_group = M.highlight_type_for(notification.type),
-          end_col = #notification:to_s(),
-        })
-      end
+      line_index = line_index - 1
+      vim.api.nvim_buf_set_lines(bufnr, line_index, line_index, false, {notification:to_s()})
+      vim.api.nvim_win_set_cursor(win, {vim.api.nvim_buf_line_count(bufnr), 0})
+      vim.api.nvim_buf_set_extmark(bufnr, M.highlight_ns_id, line_index, 0, {
+        hl_group = M.highlight_type_for(notification.type),
+        end_col = #notification:to_s(),
+      })
     end
 
     if run.spec_count > 0 then
