@@ -16,16 +16,18 @@ TODO
 
 ## Features
 
-- Copy command to run in a terminal to clipboard
-
-### Under Dev
-
-- Re-run all failures
-
 ### Upcoming
 
 - Highlight multiple specs to rerun
 - View previous spec runs
 - Show the output for each test in a new buffer next to the highlighted line
+- Show captured stderr for each test in a new buffer next to the highlighted line
+
+### Under Dev
+
+- Show captured stdout for each test in a new buffer next to the highlighted line
 
 ### Done
+
+- Copy command to run in a terminal to clipboard
+- Re-run all failures

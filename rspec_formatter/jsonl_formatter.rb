@@ -1,7 +1,21 @@
 # frozen_string_literal: true
 
+require("stringio")
 require("json")
 require("byebug")
+
+RSpec.configure do |config|
+  config.around(:each) do |example|
+    original_stdout = $stdout
+    $stdout = StringIO.new
+
+    example.run
+
+    example.metadata[:captured_stdout] = $stdout.string
+  ensure
+    $stdout = original_stdout
+  end
+end
 
 module NSpect
   class JSONLFormatter
@@ -26,6 +40,7 @@ module NSpect
         absolute_filepath: notification.example.metadata[:absolute_file_path],
         small_filepath: notification.example.file_path,
         line_number: notification.example.metadata[:line_number],
+        captured_stdout: notification.example.metadata[:captured_stdout],
       }.to_json
     end
 
@@ -37,6 +52,7 @@ module NSpect
         small_filepath: notification.example.file_path,
         line_number: notification.example.metadata[:line_number],
         message_lines: notification.message_lines,
+        captured_stdout: notification.example.metadata[:captured_stdout],
       }.to_json
     end
 
