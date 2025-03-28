@@ -182,14 +182,23 @@ end
 local split_lines = function(text)
   local lines = {}
 
-  for line in string.gmatch(text, "[^\n]+") do
-    table.insert(lines, line)
+  local line = ""
+  for i = 1, #text do
+    local c = text:sub(i, i)
+    if c == "\n" then
+      table.insert(lines, line)
+      line = ""
+    else
+      line = line .. c
+    end
   end
 
+  table.insert(lines, line)
   return lines
 end
 
 M.draw = function(run)
+  -- Results window drawing
   local win = M.results_window
   if not vim.api.nvim_win_is_valid(win) then return end
 
@@ -213,6 +222,16 @@ M.draw = function(run)
 
   if run.spec_count > 0 then
     vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Ran using: " .. M.spec_runs[1].cmd .. " " .. table.concat(M.spec_runs[1].cmd_args, " ") })
+  end
+
+  -- Output Window Drawing
+  win = M.output_window
+  bufnr = vim.api.nvim_win_get_buf(win)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+  for _, notification in ipairs(run.notifications) do
+    if notification.stdout ~= "" then
+      vim.api.nvim_buf_set_lines(bufnr, -2, -1, false, split_lines(notification.stdout))
+    end
   end
 end
 

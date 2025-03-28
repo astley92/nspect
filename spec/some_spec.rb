@@ -7,10 +7,13 @@ RSpec.describe "My Plugin" do
 
   context "some context" do
     it "works" do
+      puts "works"
       expect(1).to eq(1)
     end
 
     it "fails" do
+      puts "hello"
+      puts "hello"
       expect(1).to eq(2)
     end
 
