@@ -14,4 +14,13 @@ function SpecRun:new(cmd, cmd_args)
   return self
 end
 
+function SpecRun:ingest_notification(notification)
+  if notification.type == "start" then
+    self.spec_count = notification.spec_count
+    self.start_notification = notification
+  else
+    table.insert(self.notifications, notification)
+  end
+end
+
 return SpecRun

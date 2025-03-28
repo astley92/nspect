@@ -33,7 +33,10 @@ end
 M.reload_plugin = function()
   package.loaded["nspect"] = nil
   package.loaded["rspec_parser"] = nil
+  package.loaded["spec_run"] = nil
   RSpecParser = require("rspec_parser")
+  SpecRun = require("spec_run")
+
   local plug = require("nspect")
   plug.setup()
   print("Reloading NSpect")
@@ -161,14 +164,8 @@ M.execute_run = function(run_index)
     vim.schedule(function()
       local notifications = RSpecParser.parse(data)
       for _, notification in ipairs(notifications) do
-        if notification.type == "start" then
-          run.spec_count = notification.spec_count
-          run.start_notification = notification
-        else
-          table.insert(run.notifications, notification)
-        end
+        run:ingest_notification(notification)
       end
-
       M.redraw_buff(bufnr, win, run)
     end)
   end)
