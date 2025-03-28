@@ -1,6 +1,7 @@
 ---@diagnostic disable: undefined-global
 
 local RSpecParser = require("rspec_parser")
+local SpecRun = require("spec_run")
 
 local M = {}
 
@@ -9,7 +10,6 @@ M.setup = function()
   M.plugin_root = debug.getinfo(1, "S").source:sub(2):match("(.*)/lua(.*)$")
   M.spec_runs = {}
   M.win_title = "NSpect 🧪"
-  M.win_title_state = "Idle"
   M.wins = {}
 
   vim.keymap.set("n", "<leader>R", M.reload_plugin)
@@ -41,7 +41,6 @@ end
 
 M.reset_state = function()
   M.example_noti_count = 0
-  M.win_title_state = "Executing"
   M.error_data = ""
 end
 
@@ -54,14 +53,7 @@ M.run_file = function()
   end
   local cmd, cmd_args = M.build_command("file", filepath, nil)
 
-  local run = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-    notifications = {},
-    start_notication = nil,
-  }
-  table.insert(M.spec_runs, 1, run)
-
+  table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
   M.execute_run(1)
 end
 
@@ -75,14 +67,7 @@ M.run_line = function()
   local line_number = vim.api.nvim_win_get_cursor(0)[1]
   local cmd, cmd_args = M.build_command("line", filepath, line_number)
 
-  local run = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-    notifications = {},
-    start_notication = nil,
-  }
-  table.insert(M.spec_runs, 1, run)
-
+  table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
   M.execute_run(1)
 end
 
@@ -126,14 +111,8 @@ M.run_previous = function()
 
   M.reset_state()
   local prev_run = M.spec_runs[1]
-  local run = {
-    cmd = prev_run.cmd,
-    cmd_args = prev_run.cmd_args,
-    notifications = {},
-    start_notication = nil,
-  }
-  table.insert(M.spec_runs, 1, run)
 
+  table.insert(M.spec_runs, 1, SpecRun:new(prev_run.cmd, prev_run.cmd_args))
   M.execute_run(1)
 end
 
@@ -148,14 +127,7 @@ M.run_highlighted_spec = function()
   end
 
   local cmd, cmd_args = M.build_command("line", spec.full_filepath, spec.line_number)
-
-  local run = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-    notifications = {},
-    start_notication = nil,
-  }
-  table.insert(M.spec_runs, 1, run)
+  table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
 
   M.execute_run(1)
 end
@@ -175,9 +147,9 @@ M.execute_run = function(run_index)
   }, function()
     vim.schedule(function()
       if M.error_data == "" then
-        M.win_title_state = "Ran " .. run.spec_count .. " specs"
+        run.state = "Complete"
       else
-        M.win_title_state = "Failed to run"
+        run.state = "Failed"
       end
       M.redraw_buff(bufnr, win, run)
     end)
@@ -192,7 +164,6 @@ M.execute_run = function(run_index)
         if notification.type == "start" then
           run.spec_count = notification.spec_count
           run.start_notification = notification
-          M.win_title_state = "Running " .. run.spec_count .. " specs"
         else
           table.insert(run.notifications, notification)
         end
@@ -225,7 +196,7 @@ end
 M.redraw_buff = function(bufnr, win, run)
   if not vim.api.nvim_win_is_valid(win) then return end
 
-  vim.api.nvim_win_set_option(win, "winbar", M.win_title .. " - " .. M.win_title_state)
+  vim.api.nvim_win_set_option(win, "winbar", M.win_title .. " - " .. run.state)
   if M.error_data ~= "" then
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, split_lines(M.error_data))
   elseif run then
@@ -302,13 +273,7 @@ M.run_failed_specs = function()
   end
 
   local cmd, cmd_args = M.build_command("multiple", file_paths, nil)
-  local run = {
-    cmd = cmd,
-    cmd_args = cmd_args,
-    notifications = {},
-    start_notication = nil,
-  }
-  table.insert(M.spec_runs, 1, run)
+  table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
 
   M.execute_run(1)
 end
