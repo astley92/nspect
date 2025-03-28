@@ -10,6 +10,7 @@ function SpecRun:new(cmd, cmd_args)
   self.start_notification = {}
   self.notifications = {}
   self.state = "Idle"
+  self.error_data = ""
 
   return self
 end
