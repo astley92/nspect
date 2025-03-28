@@ -10,6 +10,7 @@ M.setup = function()
   M.spec_runs = {}
   M.title = "NSpect 🧪"
   M.results_window = nil
+  M.output_window = nil
   M.highlight_ns_id = vim.api.nvim_create_namespace("NSpectHighlight")
 
   vim.keymap.set("n", "<leader>R", M.reload_plugin)
@@ -122,11 +123,19 @@ M.build_command = function(type, filepath, line_number)
   return cmd, cmd_args
 end
 
-M.execute_run = function(run_index)
+M.create_run_windows = function()
+  local output_window = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
   local win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
 
+  return output_window, win
+end
+
+M.execute_run = function(run_index)
   M.close_windows()
+  local output_window, win = M.create_run_windows()
+
   M.results_window = win
+  M.output_window = output_window
 
   local run = M.spec_runs[run_index]
   local cmd = run.cmd
@@ -220,10 +229,11 @@ end
 M.open_prev_run = function ()
   if #M.spec_runs < 1 then return end
 
-  local win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
-
   M.close_windows()
+  local output_window, win = M.create_run_windows()
+
   M.results_window = win
+  M.output_window = output_window
 
   M.draw(M.spec_runs[1])
 end
@@ -265,13 +275,19 @@ M.run_failed_specs = function()
 end
 
 M.close_windows = function()
-  if M.results_window == nil then return end
-
-  if(vim.api.nvim_win_is_valid(M.results_window)) then
-    vim.api.nvim_win_close(M.results_window, false)
+  if (M.results_window ~= nil) then
+    if(vim.api.nvim_win_is_valid(M.results_window)) then
+      vim.api.nvim_win_close(M.results_window, false)
+    end
+    M.results_window = nil
   end
 
-  M.results_window = nil
+  if (M.output_window ~= nil) then
+    if(vim.api.nvim_win_is_valid(M.output_window)) then
+      vim.api.nvim_win_close(M.output_window, false)
+    end
+    M.output_window = nil
+  end
 end
 
 M.create_window = function(x, y, width, height)
