@@ -144,7 +144,7 @@ M.execute_run = function(run_index)
       else
         run.state = "Failed"
       end
-      M.redraw_buff(win, run)
+      M.draw(run)
     end)
   end)
 
@@ -156,7 +156,7 @@ M.execute_run = function(run_index)
       for _, notification in ipairs(notifications) do
         run:ingest_notification(notification)
       end
-      M.redraw_buff(win, run)
+      M.draw(run)
     end)
   end)
 
@@ -165,7 +165,7 @@ M.execute_run = function(run_index)
 
     run.error_data = run.error_data .. data
     vim.schedule(function()
-      M.redraw_buff(win, run)
+      M.draw(run)
     end)
   end)
 end
@@ -180,7 +180,8 @@ local split_lines = function(text)
   return lines
 end
 
-M.redraw_buff = function(win, run)
+M.draw = function(run)
+  local win = M.results_window
   if not vim.api.nvim_win_is_valid(win) then return end
 
   local bufnr = vim.api.nvim_win_get_buf(win)
@@ -224,7 +225,7 @@ M.open_prev_run = function ()
   M.close_windows()
   M.results_window = win
 
-  M.redraw_buff(win, M.spec_runs[1])
+  M.draw(M.spec_runs[1])
 end
 
 M.copy_command_to_clipboard = function()
