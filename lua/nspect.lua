@@ -123,10 +123,12 @@ M.build_command = function(type, filepath, line_number)
 end
 
 M.execute_run = function(run_index)
-  local run = M.spec_runs[run_index]
+  local win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
+
   M.close_windows()
-  local bufnr, win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
   M.results_window = win
+
+  local run = M.spec_runs[run_index]
   local cmd = run.cmd
   local cmd_args = run.cmd_args
   local stdout = vim.uv.new_pipe()
@@ -142,7 +144,7 @@ M.execute_run = function(run_index)
       else
         run.state = "Failed"
       end
-      M.redraw_buff(bufnr, win, run)
+      M.redraw_buff(win, run)
     end)
   end)
 
@@ -154,7 +156,7 @@ M.execute_run = function(run_index)
       for _, notification in ipairs(notifications) do
         run:ingest_notification(notification)
       end
-      M.redraw_buff(bufnr, win, run)
+      M.redraw_buff(win, run)
     end)
   end)
 
@@ -163,7 +165,7 @@ M.execute_run = function(run_index)
 
     run.error_data = run.error_data .. data
     vim.schedule(function()
-      M.redraw_buff(bufnr, win, run)
+      M.redraw_buff(win, run)
     end)
   end)
 end
@@ -178,9 +180,10 @@ local split_lines = function(text)
   return lines
 end
 
-M.redraw_buff = function(bufnr, win, run)
+M.redraw_buff = function(win, run)
   if not vim.api.nvim_win_is_valid(win) then return end
 
+  local bufnr = vim.api.nvim_win_get_buf(win)
   vim.api.nvim_win_set_option(win, "winbar", M.title .. " - " .. run.state)
   if run.error_data ~= "" then
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, split_lines(run.error_data))
@@ -216,10 +219,12 @@ end
 M.open_prev_run = function ()
   if #M.spec_runs < 1 then return end
 
+  local win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
+
   M.close_windows()
-  local bufnr, win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
   M.results_window = win
-  M.redraw_buff(bufnr, win, M.spec_runs[1])
+
+  M.redraw_buff(win, M.spec_runs[1])
 end
 
 M.copy_command_to_clipboard = function()
@@ -285,7 +290,7 @@ M.create_window = function(x, y, width, height)
     border = "rounded",
   })
 
-  return bufnr, win
+  return win
 end
 
 return M
