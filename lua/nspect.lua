@@ -124,10 +124,17 @@ M.build_command = function(type, filepath, line_number)
 end
 
 M.create_run_windows = function()
-  local output_window = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
-  local win = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
+  local output_window, output_buf = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
+  local results_win, results_buf = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
 
-  return output_window, win
+  vim.api.nvim_buf_set_keymap(results_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
+
+  vim.api.nvim_buf_set_keymap(output_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
+
+  return output_window, results_win
 end
 
 M.execute_run = function(run_index)
@@ -311,10 +318,6 @@ end
 
 M.create_window = function(x, y, width, height)
   local bufnr = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_keymap(bufnr, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(bufnr, "n", "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(bufnr, "n", "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(bufnr, "n", "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
 
   local win = vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
@@ -326,7 +329,7 @@ M.create_window = function(x, y, width, height)
     border = "rounded",
   })
 
-  return win
+  return win, bufnr
 end
 
 return M
