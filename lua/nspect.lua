@@ -12,6 +12,7 @@ M.setup = function()
   M.results_window = nil
   M.output_window = nil
   M.highlight_ns_id = vim.api.nvim_create_namespace("NSpectHighlight")
+  M.results_cursor_pos = 1
 
   vim.keymap.set("n", "<leader>R", M.reload_plugin)
   vim.keymap.set("n", "<leader>F", M.run_file)
@@ -123,7 +124,7 @@ M.build_command = function(type, filepath, line_number)
   return cmd, cmd_args
 end
 
-M.create_run_windows = function()
+M.create_run_windows = function(run)
   local output_window, output_buf = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
   local results_win, results_buf = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
 
@@ -134,17 +135,32 @@ M.create_run_windows = function()
 
   vim.api.nvim_buf_set_keymap(output_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
 
+  local augroup = vim.api.nvim_create_augroup("NSpectAugroup", {clear = true})
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    buffer = results_buf,
+    group = augroup,
+    callback = function()
+      local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+      if run.notifications[cursor_line] == nil then return end
+
+      M.results_cursor_pos = cursor_line
+      vim.print("Cursor moved to: " .. cursor_line)
+      M.draw(run)
+    end,
+  })
+
   return output_window, results_win
 end
 
 M.execute_run = function(run_index)
-  M.close_windows()
-  local output_window, win = M.create_run_windows()
+  local run = M.spec_runs[run_index]
 
+  M.close_windows()
+  M.results_cursor_pos = 1
+  local output_window, win = M.create_run_windows(run)
   M.results_window = win
   M.output_window = output_window
 
-  local run = M.spec_runs[run_index]
   local cmd = run.cmd
   local cmd_args = run.cmd_args
   local stdout = vim.uv.new_pipe()
@@ -220,7 +236,6 @@ M.draw = function(run)
   for line_index, notification in ipairs(run.notifications) do
     line_index = line_index - 1
     vim.api.nvim_buf_set_lines(bufnr, line_index, line_index, false, {notification:to_s()})
-    vim.api.nvim_win_set_cursor(win, {vim.api.nvim_buf_line_count(bufnr), 0})
     vim.api.nvim_buf_set_extmark(bufnr, M.highlight_ns_id, line_index, 0, {
       hl_group = M.highlight_type_for(notification.type),
       end_col = #notification:to_s(),
@@ -230,15 +245,17 @@ M.draw = function(run)
   if run.spec_count > 0 then
     vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Ran using: " .. M.spec_runs[1].cmd .. " " .. table.concat(M.spec_runs[1].cmd_args, " ") })
   end
+  vim.api.nvim_win_set_cursor(win, {M.results_cursor_pos, 0})
 
   -- Output Window Drawing
   win = M.output_window
   bufnr = vim.api.nvim_win_get_buf(win)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-  for _, notification in ipairs(run.notifications) do
-    if notification.stdout ~= "" then
-      vim.api.nvim_buf_set_lines(bufnr, -2, -1, false, split_lines(notification.stdout))
-    end
+  local notification = run.notifications[M.results_cursor_pos]
+  if notification == nil then return end
+
+  if notification.stdout ~= "" then
+    vim.api.nvim_buf_set_lines(bufnr, -2, -1, false, split_lines(notification.stdout))
   end
 end
 
@@ -256,12 +273,13 @@ M.open_prev_run = function ()
   if #M.spec_runs < 1 then return end
 
   M.close_windows()
-  local output_window, win = M.create_run_windows()
+  local run = M.spec_runs[1]
+  local output_window, win = M.create_run_windows(run)
 
   M.results_window = win
   M.output_window = output_window
 
-  M.draw(M.spec_runs[1])
+  M.draw(run)
 end
 
 M.copy_command_to_clipboard = function()
@@ -314,6 +332,10 @@ M.close_windows = function()
     end
     M.output_window = nil
   end
+
+  --if #vim.api.nvim_get_autocmds({group = "NSpectAugroup"}) > 1 then
+  --  vim.api.nvim_del_augroup_by_name("NSpectAugroup")
+  --end
 end
 
 M.create_window = function(x, y, width, height)
