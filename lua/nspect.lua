@@ -103,6 +103,7 @@ M.build_command = function(type, filepath, line_number)
     M.plugin_root .. "/rspec_formatter/jsonl_formatter.rb",
     "--format",
     "NSpect::JSONLFormatter",
+    "--no-color"
   }
 
   if type == "multiple" then

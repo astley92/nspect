@@ -22,7 +22,9 @@ function ExampleNotification:new(args)
   self.small_filepath = args.small_filepath
   self.full_filepath = args.absolute_filepath
   self.line_number = args.line_number
-  self.stdout = args.captured_stdout or ""
+  local captured_stdout = args.captured_stdout or ""
+  local captured_message = args.captured_message or ""
+  self.stdout = captured_stdout .. captured_message
 
   return self
 end

@@ -53,6 +53,7 @@ module NSpect
         line_number: notification.example.metadata[:line_number],
         message_lines: notification.message_lines,
         captured_stdout: notification.example.metadata[:captured_stdout],
+        captured_message: notification.message_lines.join("\n"),
       }.to_json
     end
 
