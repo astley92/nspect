@@ -5,7 +5,10 @@ local SpecRun = require("spec_run")
 
 local M = {}
 
-M.setup = function()
+M.setup = function(config)
+  if config == nil then config = {} end
+
+  M.config = config
   M.plugin_root = debug.getinfo(1, "S").source:sub(2):match("(.*)/lua(.*)$")
   M.spec_runs = {}
   M.title = "NSpect 🧪"
@@ -14,11 +17,11 @@ M.setup = function()
   M.highlight_ns_id = vim.api.nvim_create_namespace("NSpectHighlight")
   M.results_cursor_pos = 1
 
-  vim.keymap.set("n", "<leader>R", M.reload_plugin)
-  vim.keymap.set("n", "<leader>F", M.run_file)
-  vim.keymap.set("n", "<leader>H", M.run_line)
-  vim.keymap.set("n", "<leader>G", M.run_previous)
-  vim.keymap.set("n", "<leader>O", M.open_prev_run)
+  vim.keymap.set("n", config.reload_nspect_keymap or "<leader>R", M.reload_plugin)
+  vim.keymap.set("n", config.run_file_keymap or "<leader>F", M.run_file)
+  vim.keymap.set("n", config.run_line_keymap or "<leader>H", M.run_line)
+  vim.keymap.set("n", config.run_previous_keymap or "<leader>G", M.run_previous)
+  vim.keymap.set("n", config.open_prev_keymap or "<leader>O", M.open_prev_run)
 
   vim.api.nvim_set_hl(0, "NSpectGreen", {
     fg = "#00F000",
@@ -51,6 +54,7 @@ M.run_file = function()
   local cmd, cmd_args = M.build_command("file", filepath, nil)
 
   table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
+  if #M.spec_runs > 10 then table.remove(M.spec_runs) end
   M.execute_run(1)
 end
 
@@ -63,6 +67,7 @@ M.run_line = function()
   local cmd, cmd_args = M.build_command("line", filepath, line_number)
 
   table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
+  if #M.spec_runs > 10 then table.remove(M.spec_runs) end
   M.execute_run(1)
 end
 
@@ -72,6 +77,7 @@ M.run_previous = function()
   local prev_run = M.spec_runs[1]
 
   table.insert(M.spec_runs, 1, SpecRun:new(prev_run.cmd, prev_run.cmd_args))
+  if #M.spec_runs > 10 then table.remove(M.spec_runs) end
   M.execute_run(1)
 end
 
@@ -85,7 +91,7 @@ M.run_highlighted_spec = function()
 
   local cmd, cmd_args = M.build_command("line", spec.full_filepath, spec.line_number)
   table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
-
+  if #M.spec_runs > 10 then table.remove(M.spec_runs) end
   M.execute_run(1)
 end
 
@@ -129,10 +135,10 @@ M.create_run_windows = function(run)
   local output_window, output_buf = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
   local results_win, results_buf = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
 
-  vim.api.nvim_buf_set_keymap(results_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.close_windows_keymap or "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.run_highlighted_spec_keymap or  "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.copy_command_keymap or "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.run_failed_keymap or "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
 
   vim.api.nvim_buf_set_keymap(output_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
 
@@ -315,6 +321,7 @@ M.run_failed_specs = function()
 
   local cmd, cmd_args = M.build_command("multiple", file_paths, nil)
   table.insert(M.spec_runs, 1, SpecRun:new(cmd, cmd_args))
+  if #M.spec_runs > 10 then table.remove(M.spec_runs) end
 
   M.execute_run(1)
 end
@@ -333,10 +340,6 @@ M.close_windows = function()
     end
     M.output_window = nil
   end
-
-  --if #vim.api.nvim_get_autocmds({group = "NSpectAugroup"}) > 1 then
-  --  vim.api.nvim_del_augroup_by_name("NSpectAugroup")
-  --end
 end
 
 M.create_window = function(x, y, width, height)
