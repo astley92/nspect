@@ -16,6 +16,7 @@ M.setup = function(config)
   M.output_window = nil
   M.highlight_ns_id = vim.api.nvim_create_namespace("NSpectHighlight")
   M.results_cursor_pos = 1
+  M.augroup = vim.api.nvim_create_augroup("NSpectAugroup", {clear = true})
 
   vim.keymap.set("n", config.reload_nspect_keymap or "<leader>R", M.reload_plugin)
   vim.keymap.set("n", config.run_file_keymap or "<leader>F", M.run_file)
@@ -43,7 +44,7 @@ M.reload_plugin = function()
 
   local plug = require("nspect")
   plug.setup()
-  print("Reloading NSpect")
+  vim.notify("Reloading NSpect")
 end
 
 M.run_file = function()
@@ -142,16 +143,14 @@ M.create_run_windows = function(run)
 
   vim.api.nvim_buf_set_keymap(output_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
 
-  local augroup = vim.api.nvim_create_augroup("NSpectAugroup", {clear = true})
   vim.api.nvim_create_autocmd("CursorMoved", {
     buffer = results_buf,
-    group = augroup,
+    group = M.augroup,
     callback = function()
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
       if run.notifications[cursor_line] == nil then return end
 
       M.results_cursor_pos = cursor_line
-      vim.print("Cursor moved to: " .. cursor_line)
       M.draw(run)
     end,
   })

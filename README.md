@@ -1,6 +1,11 @@
 # NSpect
 
--[Roadmap](https://trello.com/b/zd41A6UU/nspect-roadmap)
+## Why
+
+A few reasons:
+- I recently moved from VS Code and wanted to learn how plugins work to make debugging all the things easier
+- I run a lot of RSpec tests
+- I didn't see other plugins that have this type of functionality (admittedly I didn't look hard)
 
 ## Setup
 
@@ -56,18 +61,16 @@ TODO
 - [RSpec Custom Formatters](https://rspec.info/features/3-13/rspec-core/formatters/custom-formatter/)
 - [RSpec Formatters Source](https://github.com/rspec/rspec/blob/main/rspec-core/lib/rspec/core/formatters.rb)
 
-### Things I'd Like to Add
+### Things I Might Add One Day
 
-* = in progress
+-   (external) Show backtrace properly on error
+-   (external) Don't add reload plugin outside of dev
+-   (external) Finish README
+-   (external) Highlight multiple specs to rerun
+-   (external) View previous spec runs
 
-- (external)     Don't add reload plugin outside of dev
-- (external)     Finish README
-- (external)     Highlight multiple specs to rerun
-- (external)     View previous spec runs
-- (external)  *  Show backtrace properly
+-   (internal) Split out plugin state so not manually managing all the things
+-   (internal) Create window manager abstraction and actually manage windows properly.
 
-- (internal)     Split out plugin state so not manually managing all the things
-- (internal)     Create window manager abstraction and actually manage windows properly.
-
-- (both)         Audit output capturing, definitely missing things
+-   (both)     Audit output capturing, definitely missing things
 
