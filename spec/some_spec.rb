@@ -21,7 +21,6 @@ RSpec.describe "My Plugin" do
 
   context "some context" do
     it "works" do
-      puts "I'll pass"
       expect(1).to eq(1)
     end
 
@@ -32,6 +31,10 @@ RSpec.describe "My Plugin" do
 
     it "raises" do
       raise(StandardError, "uh oh")
+    end
+
+    it "writes to stderr" do
+      $stderr.puts "This is an error message"
     end
   end
 end

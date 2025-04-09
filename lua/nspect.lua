@@ -234,23 +234,24 @@ M.draw = function(run)
   local bufnr = vim.api.nvim_win_get_buf(win)
   vim.api.nvim_win_set_option(win, "winbar", M.title .. " - " .. run.state)
   if run.error_data ~= "" then
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, split_lines(run.error_data))
-    return
+    local error_lines = split_lines(run.error_data)
+
+    table.insert(error_lines, 1, "")
+    table.insert(error_lines, 2, "----- STDERR -----")
+    table.insert(error_lines, #error_lines, "----- STDERR -----")
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, error_lines)
+  else
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
   end
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
   for line_index, notification in ipairs(run.notifications) do
-    line_index = line_index - 1
-    vim.api.nvim_buf_set_lines(bufnr, line_index, line_index, false, {notification:to_s()})
-    vim.api.nvim_buf_set_extmark(bufnr, M.highlight_ns_id, line_index, 0, {
+    vim.api.nvim_buf_set_lines(bufnr, line_index - 1, line_index - 1, false, {notification:to_s()})
+    vim.api.nvim_buf_set_extmark(bufnr, M.highlight_ns_id, line_index - 1, 0, {
       hl_group = M.highlight_type_for(notification.type),
       end_col = #notification:to_s(),
     })
   end
 
-  if run.spec_count > 0 then
-    vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Ran using: " .. M.spec_runs[1].cmd .. " " .. table.concat(M.spec_runs[1].cmd_args, " ") })
-  end
   vim.api.nvim_win_set_cursor(win, {M.results_cursor_pos, 0})
 
   -- Output Window Drawing
