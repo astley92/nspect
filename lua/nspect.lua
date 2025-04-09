@@ -1,7 +1,7 @@
 ---@diagnostic disable: undefined-global
 
-local RSpecParser = require("rspec_parser")
-local SpecRun = require("spec_run")
+local RSpecParser = require("nspect/rspec_parser")
+local SpecRun = require("nspect/spec_run")
 
 local M = {}
 
@@ -37,10 +37,10 @@ end
 
 M.reload_plugin = function()
   package.loaded["nspect"] = nil
-  package.loaded["rspec_parser"] = nil
-  package.loaded["spec_run"] = nil
-  RSpecParser = require("rspec_parser")
-  SpecRun = require("spec_run")
+  package.loaded["nspect/rspec_parser"] = nil
+  package.loaded["nspect/spec_run"] = nil
+  RSpecParser = require("nspect/rspec_parser")
+  SpecRun = require("nspect/spec_run")
 
   local plug = require("nspect")
   plug.setup()

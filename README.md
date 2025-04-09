@@ -38,15 +38,15 @@ An explanation of each of the options that can be given in the opts hash.
 
 |value|default|function|
 |-----|-------|--------|
-|run_file_keymap            |`<leader>F`|keymap to run the current spec file in normal mode                                             |
-|run_line_keymap            |`<leader>H`|keymap to run the specs associated with the current cursor line file in normal mode            |
-|run_previous_keymap        |`<leader>G`|keymap to run the most recent spec run that was run by NSpect in normal mode                   |
-|open_prev_keymap           |`<leader>O`|keymap to open the most recent output NSpect run dialog in normal mode                         |
-|close_windows_keymap       |`q`        |keymap close the dialog windows when in one of the output windows                              |
-|run_highlighted_spec_keymap|`r`        |keymap run the spec underneath the cursor when in the main output window                       |
-|copy_command_keymap        |`y`        |keymap to copy the command used to run the current spec run when in one of the output windows  |
-|run_failed_keymap          |`f`        |keymap run all failed specs within the current run when in one of the output windows           |
-|reload_nspect_keymap       |`<leader>R`|keymap to reload the NSpect plugin (helpful for dev)                                           |
+|run_file_keymap            |`<leader>F`|run the current spec file in normal mode                                               |
+|run_line_keymap            |`<leader>H`|run the specs associated with the current cursor line file in normal mode              |
+|run_previous_keymap        |`<leader>G`|run the most recent spec run that was run by NSpect in normal mode                     |
+|open_prev_keymap           |`<leader>O`|open the most recent output NSpect run dialog in normal mode                           |
+|close_windows_keymap       |`q`        |close the dialog windows when in one of the output windows                             |
+|run_highlighted_spec_keymap|`r`        |run the spec underneath the cursor when in the main output window                      |
+|copy_command_keymap        |`y`        |copy the command used to run the current spec run when in one of the output windows    |
+|run_failed_keymap          |`f`        |run all failed specs within the current run when in one of the output windows          |
+|reload_nspect_keymap       |`<leader>R`|reload the NSpect plugin (helpful for dev)                                             |
 
 ## Development
 
