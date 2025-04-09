@@ -229,7 +229,7 @@ end
 M.draw = function(run)
   -- Results window drawing
   local win = M.results_window
-  if not vim.api.nvim_win_is_valid(win) then return end
+  if not win or not vim.api.nvim_win_is_valid(win) then return end
 
   local bufnr = vim.api.nvim_win_get_buf(win)
   vim.api.nvim_win_set_option(win, "winbar", M.title .. " - " .. run.state)

@@ -71,6 +71,7 @@ TODO
 
 -   (internal) Split out plugin state so not manually managing all the things
 -   (internal) Create window manager abstraction and actually manage windows properly.
+-   (internal) Testing
 
 -   (both)     Audit output capturing, definitely missing things
 
