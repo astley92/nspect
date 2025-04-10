@@ -25,13 +25,13 @@ M.setup = function(config)
   vim.keymap.set("n", config.open_prev_keymap or "<leader>O", M.open_prev_run)
 
   vim.api.nvim_set_hl(0, "NSpectGreen", {
-    fg = "#00F000",
+    fg = "#228B22",
   })
   vim.api.nvim_set_hl(0, "NSpectRed", {
-    fg = "#F00000",
+    fg = "#CD5C5C",
   })
   vim.api.nvim_set_hl(0, "NSpectYellow", {
-    fg = "#F0F000",
+    fg = "#FFF44F",
   })
 end
 
@@ -177,11 +177,7 @@ M.execute_run = function(run_index)
     stdio = { nil, stdout, stderr }
   }, function()
     vim.schedule(function()
-      if run.error_data == "" then
-        run.state = "Complete"
-      else
-        run.state = "Failed"
-      end
+      run.state = "Complete"
       M.draw(run)
     end)
   end)

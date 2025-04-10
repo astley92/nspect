@@ -17,6 +17,10 @@ RSpec.describe "My Plugin" do
     Hello.hello_name
   end
 
+  it "captures stdout" do
+    Hello.hello_name("World")
+  end
+
   it "is pending"
 
   context "some context" do
