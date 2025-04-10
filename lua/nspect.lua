@@ -2,6 +2,7 @@
 
 local RSpecParser = require("nspect/rspec_parser")
 local SpecRun = require("nspect/spec_run")
+local WindowManager = require("nspect/window_manager")
 
 local M = {}
 
@@ -12,8 +13,7 @@ M.setup = function(config)
   M.plugin_root = debug.getinfo(1, "S").source:sub(2):match("(.*)/lua(.*)$")
   M.spec_runs = {}
   M.title = "NSpect 🧪"
-  M.results_window = nil
-  M.output_window = nil
+  M.window_manager = WindowManager:new()
   M.highlight_ns_id = vim.api.nvim_create_namespace("NSpectHighlight")
   M.results_cursor_pos = 1
   M.augroup = vim.api.nvim_create_augroup("NSpectAugroup", {clear = true})
@@ -39,6 +39,7 @@ M.reload_plugin = function()
   package.loaded["nspect"] = nil
   package.loaded["nspect/rspec_parser"] = nil
   package.loaded["nspect/spec_run"] = nil
+  package.loaded["nspect/window_manager"] = nil
   RSpecParser = require("nspect/rspec_parser")
   SpecRun = require("nspect/spec_run")
 
@@ -133,18 +134,46 @@ M.build_command = function(type, filepath, line_number)
 end
 
 M.create_run_windows = function(run)
-  local output_window, output_buf = M.create_window(vim.o.columns / 2, math.floor((vim.o.lines - 3) / 2) + 2, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2) - 2)
-  local results_win, results_buf = M.create_window(vim.o.columns / 2, 0, math.floor(vim.o.columns / 2), math.floor((vim.o.lines - 3) / 2))
+  local results_buf, output_buf = M.window_manager:open_all_windows()
+  vim.api.nvim_buf_set_keymap(
+    results_buf,
+    "n",
+    M.config.close_windows_keymap or "q",
+    ":lua require('nspect').window_manager:close_all_windows()<CR>",
+    { silent=true }
+  )
+  vim.api.nvim_buf_set_keymap(
+    results_buf,
+    "n",
+    M.config.run_highlighted_spec_keymap or  "<CR>",
+    ":lua require('nspect').run_highlighted_spec()<CR>",
+    { silent=true }
+  )
+  vim.api.nvim_buf_set_keymap(
+    results_buf,
+    "n",
+    M.config.copy_command_keymap or "y",
+    ":lua require('nspect').copy_command_to_clipboard()<CR>",
+    { silent=true }
+  )
+  vim.api.nvim_buf_set_keymap(
+    results_buf,
+    "n",
+    M.config.run_failed_keymap or "f",
+    ":lua require('nspect').run_failed_specs()<CR>",
+    { silent=true }
+  )
 
-  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.close_windows_keymap or "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.run_highlighted_spec_keymap or  "<CR>", ":lua require('nspect').run_highlighted_spec()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.copy_command_keymap or "y", ":lua require('nspect').copy_command_to_clipboard()<CR>", { silent=true })
-  vim.api.nvim_buf_set_keymap(results_buf, "n", M.config.run_failed_keymap or "f", ":lua require('nspect').run_failed_specs()<CR>", { silent=true })
-
-  vim.api.nvim_buf_set_keymap(output_buf, "n", "q", ":lua require('nspect').close_windows()<CR>", { silent=true })
+  vim.api.nvim_buf_set_keymap(
+    output_buf,
+    "n",
+    "q",
+    ":lua require('nspect').window_manager:close_all_windows()<CR>",
+    { silent=true }
+  )
 
   vim.api.nvim_create_autocmd("CursorMoved", {
-    buffer = results_buf,
+    buffer = M.window_manager.results_buf,
     group = M.augroup,
     callback = function()
       local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
@@ -154,18 +183,14 @@ M.create_run_windows = function(run)
       M.draw(run)
     end,
   })
-
-  return output_window, results_win
 end
 
 M.execute_run = function(run_index)
   local run = M.spec_runs[run_index]
 
-  M.close_windows()
+  M.window_manager:close_all_windows()
   M.results_cursor_pos = 1
-  local output_window, win = M.create_run_windows(run)
-  M.results_window = win
-  M.output_window = output_window
+  M.create_run_windows(run)
 
   local cmd = run.cmd
   local cmd_args = run.cmd_args
@@ -224,10 +249,10 @@ end
 
 M.draw = function(run)
   -- Results window drawing
-  local win = M.results_window
+  local win = M.window_manager.results_window
   if not win or not vim.api.nvim_win_is_valid(win) then return end
 
-  local bufnr = vim.api.nvim_win_get_buf(win)
+  local bufnr = M.window_manager.results_buf
   vim.api.nvim_win_set_option(win, "winbar", M.title .. " - " .. run.state)
   if run.error_data ~= "" then
     local error_lines = split_lines(run.error_data)
@@ -251,8 +276,8 @@ M.draw = function(run)
   vim.api.nvim_win_set_cursor(win, {M.results_cursor_pos, 0})
 
   -- Output Window Drawing
-  win = M.output_window
-  bufnr = vim.api.nvim_win_get_buf(win)
+  win = M.window_manager.output_window
+  bufnr = M.window_manager.output_buf
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
   local notification = run.notifications[M.results_cursor_pos]
   if notification == nil then return end
@@ -275,12 +300,9 @@ end
 M.open_prev_run = function ()
   if #M.spec_runs < 1 then return end
 
-  M.close_windows()
+  M.window_manager:close_all_windows()
   local run = M.spec_runs[1]
-  local output_window, win = M.create_run_windows(run)
-
-  M.results_window = win
-  M.output_window = output_window
+  M.create_run_windows(run)
 
   M.draw(run)
 end
@@ -320,38 +342,6 @@ M.run_failed_specs = function()
   if #M.spec_runs > 10 then table.remove(M.spec_runs) end
 
   M.execute_run(1)
-end
-
-M.close_windows = function()
-  if (M.results_window ~= nil) then
-    if(vim.api.nvim_win_is_valid(M.results_window)) then
-      vim.api.nvim_win_close(M.results_window, false)
-    end
-    M.results_window = nil
-  end
-
-  if (M.output_window ~= nil) then
-    if(vim.api.nvim_win_is_valid(M.output_window)) then
-      vim.api.nvim_win_close(M.output_window, false)
-    end
-    M.output_window = nil
-  end
-end
-
-M.create_window = function(x, y, width, height)
-  local bufnr = vim.api.nvim_create_buf(false, true)
-
-  local win = vim.api.nvim_open_win(bufnr, true, {
-    relative = "editor",
-    row = y,
-    col = x,
-    width = width,
-    height = height,
-    style = "minimal",
-    border = "rounded",
-  })
-
-  return win, bufnr
 end
 
 return M
